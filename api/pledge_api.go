@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kistars/pledge-backend/api/middlewares"
 	"github.com/kistars/pledge-backend/api/models"
+	"github.com/kistars/pledge-backend/api/models/kucoin"
 	"github.com/kistars/pledge-backend/api/models/ws"
 	"github.com/kistars/pledge-backend/api/routes"
 	"github.com/kistars/pledge-backend/api/static"
@@ -27,10 +28,10 @@ func main() {
 	go ws.StartServer()
 
 	// get plgr price from kucoin-exchange
-	// go kucoin.GetExchangePrice()
+	go kucoin.GetExchangePrice()
 
 	// gin start
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 	app := gin.Default()
 	staticPath := static.GetCurrentAbPathByCaller()
 	app.Static("/storage/", staticPath)
