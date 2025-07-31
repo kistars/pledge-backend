@@ -19,6 +19,8 @@ func main() {
 
 	// init redis
 	db.InitRedis()
+
+	// 创建数据表
 	models.InitTable()
 
 	// validate

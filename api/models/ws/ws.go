@@ -79,7 +79,7 @@ func (s *Server) ReadAndWrite() {
 		}
 	}()
 
-	//read
+	//read 读取客户端的心跳消息
 	go func() {
 		for {
 
