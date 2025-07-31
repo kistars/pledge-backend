@@ -26,7 +26,7 @@ func (s *BalanceMonitor) Monitor() {
 	//check on bsc test-net
 	tokenPoolBalance, err := s.GetBalance(config.Config.TestNet.NetUrl, config.Config.TestNet.PledgePoolToken)
 	thresholdPoolToken, ok := new(big.Int).SetString(config.Config.Threshold.PledgePoolTokenThresholdBnb, 10)
-	if ok && (err == nil) && (tokenPoolBalance.Cmp(thresholdPoolToken) <= 0) {
+	if ok && (err == nil) && (tokenPoolBalance.Cmp(thresholdPoolToken) <= 0) { // 池子余额过少，发邮件通知管理员
 		emailBody, err := s.EmailBody(config.Config.TestNet.PledgePoolToken, "TBNB", tokenPoolBalance.String(), thresholdPoolToken.String())
 		if err != nil {
 			log.Logger.Error(err.Error())
@@ -54,7 +54,7 @@ func (s *BalanceMonitor) Monitor() {
 	// }
 }
 
-// GetBalance get balance of ERC20 token
+// GetBalance get balance of native token
 func (s *BalanceMonitor) GetBalance(netUrl, token string) (*big.Int, error) {
 
 	ethereumClient, err := ethclient.Dial(netUrl)

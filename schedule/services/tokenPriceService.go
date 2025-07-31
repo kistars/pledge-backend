@@ -32,7 +32,7 @@ func NewTokenPrice() *TokenPrice {
 // UpdateContractPrice update contract price
 func (s *TokenPrice) UpdateContractPrice() {
 	var tokens []models.TokenInfo
-	db.Mysql.Table("token_info").Find(&tokens)
+	db.Mysql.Table("token_info").Find(&tokens) // read from db
 	for _, t := range tokens {
 
 		var err error
@@ -42,9 +42,10 @@ func (s *TokenPrice) UpdateContractPrice() {
 			log.Logger.Sugar().Error("UpdateContractPrice token empty ", t.Symbol, t.ChainId)
 			continue
 		} else {
-			if t.ChainId == config.Config.TestNet.ChainId {
-				price, err = s.GetTestNetTokenPrice(t.Token)
-			} else if t.ChainId == "56" {
+			switch t.ChainId {
+			case config.Config.TestNet.ChainId:
+				price, err = s.GetTestNetTokenPrice(t.Token) // 获取token价格
+			case "56":
 				// if strings.ToUpper(t.Token) == config.Config.MainNet.PlgrAddress { // get PLGR price from ku-coin(Only main network price)
 				// 	priceStr, _ := db.RedisGetString("plgr_price")
 				// 	priceF, _ := decimal.NewFromString(priceStr)
@@ -72,7 +73,7 @@ func (s *TokenPrice) UpdateContractPrice() {
 		}
 
 		if hasNewData {
-			err = s.SavePriceData(t.Token, t.ChainId, utils.Int64ToString(price))
+			err = s.SavePriceData(t.Token, t.ChainId, utils.Int64ToString(price)) // 写入mysql
 			if err != nil {
 				log.Logger.Sugar().Error("UpdateContractPrice SavePriceData err ", err)
 				continue
@@ -112,6 +113,7 @@ func (s *TokenPrice) GetTestNetTokenPrice(token string) (int64, error) {
 		return 0, err
 	}
 
+	// 获取合约实例
 	bscPledgeOracleTestnetToken, err := bindings.NewBscPledgeOracleTestnetToken(common.HexToAddress(config.Config.TestNet.BscPledgeOracleToken), ethereumConn)
 	if nil != err {
 		log.Logger.Error(err.Error())
@@ -135,8 +137,8 @@ func (s *TokenPrice) CheckPriceData(token, chainId, price string) (bool, error) 
 		log.Logger.Error(err.Error())
 		return false, err
 	}
-	if len(redisTokenInfoBytes) <= 0 {
-		err = s.CheckTokenInfo(token, chainId)
+	if len(redisTokenInfoBytes) <= 0 { // 缓存中没有token信息
+		err = s.CheckTokenInfo(token, chainId) // 写入mysql
 		if err != nil {
 			log.Logger.Error(err.Error())
 		}
@@ -144,7 +146,7 @@ func (s *TokenPrice) CheckPriceData(token, chainId, price string) (bool, error) 
 			Token:   token,
 			ChainId: chainId,
 			Price:   price,
-		}, 0)
+		}, 0) // 写入redis
 		if err != nil {
 			log.Logger.Error(err.Error())
 			return false, err
@@ -162,7 +164,7 @@ func (s *TokenPrice) CheckPriceData(token, chainId, price string) (bool, error) 
 		}
 
 		redisTokenInfo.Price = price
-		err = db.RedisSet(redisKey, redisTokenInfo, 0)
+		err = db.RedisSet(redisKey, redisTokenInfo, 0) // 更新redis
 		if err != nil {
 			log.Logger.Error(err.Error())
 			return true, err
@@ -275,12 +277,14 @@ func (s *TokenPrice) SavePlgrPriceTestNet() {
 		log.Logger.Error(err.Error())
 		return
 	}
+	// 获取合约实例
 	bscPledgeOracleTestNetToken, err := bindings.NewBscPledgeOracleMainnetToken(common.HexToAddress(config.Config.TestNet.BscPledgeOracleToken), ethereumConn)
 	if nil != err {
 		log.Logger.Error(err.Error())
 		return
 	}
 
+	// 从环境变量中读取私钥
 	privateKeyEcdsa, err := crypto.HexToECDSA(serviceCommon.PlgrAdminPrivateKey)
 	if err != nil {
 		log.Logger.Error(err.Error())
@@ -309,6 +313,7 @@ func (s *TokenPrice) SavePlgrPriceTestNet() {
 		NoSend:    false, // Do all transact steps but do not send the transaction
 	}
 
+	// 更新链上价格数据
 	_, err = bscPledgeOracleTestNetToken.SetPrice(&transactOpts, common.HexToAddress(config.Config.TestNet.PlgrAddress), big.NewInt(int64(price)))
 
 	log.Logger.Sugar().Info("SavePlgrPrice ", err)

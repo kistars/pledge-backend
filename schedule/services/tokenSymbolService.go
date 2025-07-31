@@ -37,9 +37,10 @@ func (s *TokenSymbol) UpdateContractSymbol() {
 		}
 		var err error
 		symbol := ""
-		if t.ChainId == config.Config.TestNet.ChainId {
+		switch t.ChainId {
+		case config.Config.TestNet.ChainId:
 			symbol, err = s.GetContractSymbolOnTestNet(t.Token, config.Config.TestNet.NetUrl)
-		} else if t.ChainId == config.Config.MainNet.ChainId {
+		case config.Config.MainNet.ChainId:
 			if t.AbiFileExist == 0 {
 				err = s.GetRemoteAbiFileByToken(t.Token, t.ChainId)
 				if err != nil {
@@ -48,7 +49,7 @@ func (s *TokenSymbol) UpdateContractSymbol() {
 				}
 			}
 			symbol, err = s.GetContractSymbolOnMainNet(t.Token, config.Config.MainNet.NetUrl)
-		} else {
+		default:
 			log.Logger.Sugar().Error("UpdateContractSymbol chain_id err ", t.Symbol, t.ChainId)
 			continue
 		}
@@ -64,7 +65,7 @@ func (s *TokenSymbol) UpdateContractSymbol() {
 		}
 
 		if hasNewData {
-			err = s.SaveSymbolData(t.Token, t.ChainId, symbol)
+			err = s.SaveSymbolData(t.Token, t.ChainId, symbol) // 写入mysql
 			if err != nil {
 				log.Logger.Sugar().Error("UpdateContractSymbol SaveSymbolData err ", err)
 				continue
@@ -201,11 +202,11 @@ func (s *TokenSymbol) CheckSymbolData(token, chainId, symbol string) (bool, erro
 		return false, err
 	}
 	if len(redisTokenInfoBytes) <= 0 {
-		err = s.CheckTokenInfo(token, chainId)
+		err = s.CheckTokenInfo(token, chainId) // 插入mysql
 		if err != nil {
 			log.Logger.Error(err.Error())
 		}
-		err = db.RedisSet(redisKey, models.RedisTokenInfo{
+		err = db.RedisSet(redisKey, models.RedisTokenInfo{ // 插入redis
 			Token:   token,
 			ChainId: chainId,
 			Symbol:  symbol,
